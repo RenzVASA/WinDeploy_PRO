@@ -1,0 +1,946 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WinDeploy Pro — Générateur de script</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0b0e14;
+  --bg2: #111520;
+  --bg3: #181d2a;
+  --surface: #1c2235;
+  --border: #252d42;
+  --border2: #2e3a56;
+  --text: #e8ecf5;
+  --text2: #8892aa;
+  --text3: #4a5570;
+  --blue: #3b82f6;
+  --blue-l: #1e3a6e;
+  --green: #22c55e;
+  --green-l: #0f3322;
+  --orange: #f97316;
+  --orange-l: #3a1a06;
+  --red: #ef4444;
+  --purple: #8b5cf6;
+  --cyan: #06b6d4;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Syne', sans-serif;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* GRID BG */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(59,130,246,.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(59,130,246,.03) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.wrap { position: relative; z-index: 1; max-width: 860px; margin: 0 auto; padding: 40px 24px 80px; }
+
+/* HEADER */
+.header { margin-bottom: 48px; }
+.header-eyebrow {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .15em;
+  text-transform: uppercase;
+  color: var(--blue);
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.header-eyebrow::before {
+  content: '';
+  display: inline-block;
+  width: 24px;
+  height: 2px;
+  background: var(--blue);
+}
+.header h1 {
+  font-size: clamp(28px, 5vw, 44px);
+  font-weight: 800;
+  line-height: 1.1;
+  color: var(--text);
+  margin-bottom: 12px;
+}
+.header h1 span { color: var(--blue); }
+.header p { color: var(--text2); font-size: 15px; max-width: 520px; line-height: 1.7; }
+
+/* STEPS */
+.steps { display: flex; gap: 8px; margin-bottom: 40px; flex-wrap: wrap; }
+.step {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px 6px 8px;
+  border-radius: 30px;
+  border: 1px solid var(--border);
+  background: var(--bg2);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text3);
+  transition: all .3s;
+}
+.step.active { border-color: var(--blue); color: var(--blue); background: var(--blue-l); }
+.step.done { border-color: var(--green); color: var(--green); background: var(--green-l); }
+.step-n {
+  width: 20px; height: 20px;
+  border-radius: 50%;
+  background: var(--border);
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  font-weight: 700;
+  transition: all .3s;
+}
+.step.active .step-n { background: var(--blue); color: #fff; }
+.step.done .step-n { background: var(--green); color: #fff; }
+
+/* SECTION */
+.section { display: none; animation: fadeUp .25s ease; }
+.section.active { display: block; }
+@keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+
+/* PANEL */
+.panel {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  overflow: hidden;
+  margin-bottom: 20px;
+}
+.panel-head {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--bg3);
+}
+.panel-icon { font-size: 18px; }
+.panel-title { font-size: 14px; font-weight: 700; color: var(--text); }
+.panel-sub { font-size: 12px; color: var(--text3); margin-left: auto; font-family: 'JetBrains Mono', monospace; }
+.panel-body { padding: 6px 0; }
+
+/* APP ROW */
+.app-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  transition: background .15s;
+  user-select: none;
+}
+.app-row:last-child { border-bottom: none; }
+.app-row:hover { background: var(--surface); }
+.app-row.checked { background: rgba(59,130,246,.04); }
+
+/* TOGGLE */
+.toggle {
+  width: 38px; height: 22px;
+  border-radius: 11px;
+  background: var(--border2);
+  position: relative;
+  transition: background .2s;
+  flex-shrink: 0;
+}
+.toggle::after {
+  content: '';
+  position: absolute;
+  top: 3px; left: 3px;
+  width: 16px; height: 16px;
+  border-radius: 50%;
+  background: var(--text3);
+  transition: all .2s;
+}
+.app-row.checked .toggle { background: var(--blue); }
+.app-row.checked .toggle::after { left: 19px; background: #fff; }
+
+/* APP INFO */
+.app-icon { font-size: 22px; flex-shrink: 0; width: 32px; text-align: center; }
+.app-info { flex: 1; }
+.app-name { font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 2px; }
+.app-row.checked .app-name { color: var(--text); }
+.app-desc { font-size: 12px; color: var(--text3); }
+.app-badge {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+.badge-free { background: var(--green-l); color: var(--green); border: 1px solid var(--green); }
+.badge-sec { background: rgba(139,92,246,.15); color: var(--purple); border: 1px solid var(--purple); }
+.badge-it { background: rgba(6,182,212,.12); color: var(--cyan); border: 1px solid var(--cyan); }
+
+/* CONFIG */
+.config-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 16px 20px; }
+.config-item label {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--text3);
+  margin-bottom: 6px;
+  font-family: 'JetBrains Mono', monospace;
+}
+.config-item input, .config-item select {
+  width: 100%;
+  background: var(--bg);
+  border: 1px solid var(--border2);
+  border-radius: 8px;
+  padding: 9px 12px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  color: var(--text);
+  outline: none;
+  transition: border-color .2s;
+}
+.config-item input:focus, .config-item select:focus { border-color: var(--blue); }
+.config-item select option { background: var(--bg2); }
+
+/* BULK */
+.bulk-row {
+  display: flex;
+  gap: 8px;
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg3);
+}
+.bulk-btn {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 5px 12px;
+  border-radius: 5px;
+  border: 1px solid var(--border2);
+  background: transparent;
+  color: var(--text2);
+  cursor: pointer;
+  transition: all .15s;
+}
+.bulk-btn:hover { border-color: var(--blue); color: var(--blue); }
+
+/* BUTTONS */
+.btn-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 24px; }
+.btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 12px 24px;
+  border-radius: 10px;
+  border: none;
+  font-family: 'Syne', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all .2s;
+}
+.btn-primary {
+  background: var(--blue);
+  color: #fff;
+  box-shadow: 0 0 0 0 rgba(59,130,246,.4);
+}
+.btn-primary:hover {
+  background: #2563eb;
+  transform: translateY(-1px);
+  box-shadow: 0 0 20px rgba(59,130,246,.3);
+}
+.btn-ghost {
+  background: var(--bg3);
+  border: 1px solid var(--border2);
+  color: var(--text2);
+}
+.btn-ghost:hover { border-color: var(--blue); color: var(--blue); }
+.btn-green {
+  background: var(--green);
+  color: #fff;
+}
+.btn-green:hover { background: #16a34a; transform: translateY(-1px); }
+
+/* SUMMARY */
+.summary-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 24px; }
+.sum-card {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px 16px;
+  text-align: center;
+}
+.sum-n {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--blue);
+  display: block;
+  line-height: 1;
+  margin-bottom: 4px;
+}
+.sum-l { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: .06em; }
+
+.app-list-recap {
+  display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 20px;
+}
+.recap-pill {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  padding: 4px 10px;
+  border-radius: 5px;
+  background: var(--blue-l);
+  border: 1px solid var(--blue);
+  color: var(--blue);
+  font-weight: 600;
+}
+.recap-pill.skip {
+  background: var(--bg3);
+  border-color: var(--border);
+  color: var(--text3);
+  text-decoration: line-through;
+}
+
+/* CODE OUTPUT */
+.code-wrap {
+  background: #080b10;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  margin-top: 20px;
+}
+.code-top {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 16px;
+  background: var(--bg3);
+  border-bottom: 1px solid var(--border);
+}
+.code-dots { display: flex; gap: 5px; }
+.cd { width: 10px; height: 10px; border-radius: 50%; }
+.cd.r { background: #ff5f56; } .cd.y { background: #ffbd2e; } .cd.g { background: #27c93f; }
+.code-filename { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--text3); }
+.copy-btn {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  padding: 4px 12px;
+  border-radius: 5px;
+  border: 1px solid var(--border2);
+  background: transparent;
+  color: var(--text3);
+  cursor: pointer;
+  transition: all .15s;
+}
+.copy-btn:hover { border-color: var(--green); color: var(--green); }
+.copy-btn.ok { color: var(--green); border-color: var(--green); }
+pre {
+  padding: 20px;
+  overflow-x: auto;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  line-height: 1.8;
+  color: #a8b8d8;
+  white-space: pre;
+  max-height: 420px;
+}
+.kw { color: #c084fc; font-weight: 600; }
+.cmd { color: #60a5fa; }
+.str { color: #4ade80; }
+.com { color: #4a5570; font-style: italic; }
+.var { color: #fbbf24; }
+.val { color: #f97316; }
+.path { color: #818cf8; }
+
+/* INFO BOX */
+.info-box {
+  display: flex; gap: 12px;
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin-bottom: 14px;
+  font-size: 13px;
+}
+.info-box.blue { background: var(--blue-l); border: 1px solid var(--blue); color: #93c5fd; }
+.info-box.orange { background: var(--orange-l); border: 1px solid var(--orange); color: #fdba74; }
+
+@media(max-width:600px) {
+  .config-grid { grid-template-columns: 1fr; }
+  .summary-grid { grid-template-columns: 1fr 1fr; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="header-eyebrow">WinDeploy Pro v3.0 / dev Renz-VASA (k.vanoosthuyse)</div>
+    <h1>Générateur de script<br><span>Windows 11</span></h1>
+    <p>Configurez votre déploiement, choisissez vos applications, et générez un script <code style="font-family:'JetBrains Mono',monospace;font-size:13px;background:var(--bg3);padding:1px 6px;border-radius:4px;color:var(--orange)">.bat</code> prêt à l'emploi.</p>
+  </div>
+
+  <!-- STEPS -->
+  <div class="steps">
+    <div class="step active" id="s1"><div class="step-n">1</div> Configuration</div>
+    <div class="step" id="s2"><div class="step-n">2</div> Applications</div>
+    <div class="step" id="s3"><div class="step-n">3</div> Génération</div>
+  </div>
+
+  <!-- ======================== SECTION 1 : CONFIG ======================== -->
+  <div class="section active" id="sec1">
+
+    <div class="panel">
+      <div class="panel-head">
+        <span class="panel-icon">⚙️</span>
+        <span class="panel-title">Paramètres généraux</span>
+      </div>
+      <div class="config-grid">
+        <div class="config-item">
+          <label>Votre Nom</label>
+          <input type="text" id="cfg-company" value="Votre Nom" placeholder="Votre Nom">
+        </div>
+        <div class="config-item">
+          <label>Dossier logs</label>
+          <input type="text" id="cfg-logdir" value="C:\Logs" placeholder="C:\Logs">
+        </div>
+        <div class="config-item">
+          <label>Chemin fond d'écran</label>
+          <input type="text" id="cfg-wallpaper" value="C:\Windows\Web\Wallpaper\Windows\img0.jpg">
+        </div>
+        <div class="config-item">
+          <label>Veille secteur (min)</label>
+          <input type="number" id="cfg-veille-ac" value="240" min="0" max="1440">
+        </div>
+        <div class="config-item">
+          <label>Veille batterie (min)</label>
+          <input type="number" id="cfg-veille-dc" value="240" min="0" max="480">
+        </div>
+        <div class="config-item">
+          <label>Extinction écran secteur</label>
+          <input type="number" id="cfg-ecran-ac" value="240" min="0" max="480">
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">
+        <span class="panel-icon">🔧</span>
+        <span class="panel-title">Options système</span>
+      </div>
+      <div style="padding:16px 20px;display:flex;flex-direction:column;gap:10px;">
+        <label class="app-row checked" style="border-radius:8px;border:1px solid var(--border);" onclick="this.classList.toggle('checked')">
+          <div class="toggle"></div>
+          <div class="app-info"><div class="app-name">Plan haute performance</div><div class="app-desc">Active le plan d'alimentation haute performance</div></div>
+        </label>
+        <label class="app-row checked" style="border-radius:8px;border:1px solid var(--border);" onclick="this.classList.toggle('checked')">
+          <div class="toggle"></div>
+          <div class="app-info"><div class="app-name">Désactiver hibernation</div><div class="app-desc">Supprime hiberfil.sys et libère de l'espace disque</div></div>
+        </label>
+        <label class="app-row checked" style="border-radius:8px;border:1px solid var(--border);" onclick="this.classList.toggle('checked')">
+          <div class="toggle"></div>
+          <div class="app-info"><div class="app-name">Icônes bureau (Ce PC, Utilisateur, Corbeille)</div><div class="app-desc">Ajoute les icônes classiques sur le bureau via le registre</div></div>
+        </label>
+        <label class="app-row checked" style="border-radius:8px;border:1px solid var(--border);" onclick="this.classList.toggle('checked')">
+          <div class="toggle"></div>
+          <div class="app-info"><div class="app-name">Extensions de fichiers visibles</div><div class="app-desc">Affiche les extensions (.docx, .exe, .pdf…)</div></div>
+        </label>
+        <label class="app-row checked" style="border-radius:8px;border:1px solid var(--border);" onclick="this.classList.toggle('checked')">
+          <div class="toggle"></div>
+          <div class="app-info"><div class="app-name">Barre des tâches alignée à gauche</div><div class="app-desc">Style Windows 10 / professionnel</div></div>
+        </label>
+        <label class="app-row checked" style="border-radius:8px;border:1px solid var(--border);" onclick="this.classList.toggle('checked')">
+          <div class="toggle"></div>
+          <div class="app-info"><div class="app-name">Sécurité (Defender, Pare-feu, UAC)</div><div class="app-desc">Active la protection temps réel et configure le pare-feu</div></div>
+        </label>
+        <label class="app-row checked" style="border-radius:8px;border:1px solid var(--border);" onclick="this.classList.toggle('checked')">
+          <div class="toggle"></div>
+          <div class="app-info"><div class="app-name">Nettoyage disque automatique</div><div class="app-desc">TEMP, corbeille, cache navigateur, miniatures</div></div>
+        </label>
+        <label class="app-row checked" style="border-radius:8px;border:1px solid var(--border);" onclick="this.classList.toggle('checked')">
+          <div class="toggle"></div>
+          <div class="app-info"><div class="app-name">Désactiver Cortana et suggestions</div><div class="app-desc">Réduit la télémétrie et supprime les publicités du menu Démarrer</div></div>
+        </label>
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="goTo(2)">Choisir les applications →</button>
+    </div>
+  </div>
+
+  <!-- ======================== SECTION 2 : APPS ======================== -->
+  <div class="section" id="sec2">
+
+    <div class="panel">
+      <div class="panel-head">
+        <span class="panel-icon">🌐</span>
+        <span class="panel-title">Navigateurs</span>
+        <span class="panel-sub">via winget</span>
+      </div>
+      <div class="bulk-row">
+        <button class="bulk-btn" onclick="toggleCat('nav',true)">Tout cocher</button>
+        <button class="bulk-btn" onclick="toggleCat('nav',false)">Tout décocher</button>
+      </div>
+      <div class="panel-body">
+        <div class="app-row checked" data-cat="nav" data-id="Google.Chrome" onclick="toggleRow(this)">
+          <div class="toggle"></div>
+          <div class="app-icon">🌐</div>
+          <div class="app-info"><div class="app-name">Google Chrome</div><div class="app-desc">Navigateur Google — le plus répandu en entreprise</div></div>
+          <span class="app-badge badge-free">GRATUIT</span>
+        </div>
+        <div class="app-row checked" data-cat="nav" data-id="Mozilla.Firefox" onclick="toggleRow(this)">
+          <div class="toggle"></div>
+          <div class="app-icon">🦊</div>
+          <div class="app-info"><div class="app-name">Mozilla Firefox</div><div class="app-desc">Navigateur open-source axé vie privée</div></div>
+          <span class="app-badge badge-free">GRATUIT</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">
+        <span class="panel-icon">📄</span>
+        <span class="panel-title">Bureautique</span>
+        <span class="panel-sub">via winget</span>
+      </div>
+      <div class="bulk-row">
+        <button class="bulk-btn" onclick="toggleCat('office',true)">Tout cocher</button>
+        <button class="bulk-btn" onclick="toggleCat('office',false)">Tout décocher</button>
+      </div>
+      <div class="panel-body">
+        <div class="app-row checked" data-cat="office" data-id="TheDocumentFoundation.LibreOffice" onclick="toggleRow(this)">
+          <div class="toggle"></div>
+          <div class="app-icon">📝</div>
+          <div class="app-info"><div class="app-name">LibreOffice</div><div class="app-desc">Suite bureautique complète — Writer, Calc, Impress</div></div>
+          <span class="app-badge badge-free">GRATUIT</span>
+        </div>
+        <div class="app-row checked" data-cat="office" data-id="Adobe.Acrobat.Reader.64-bit" onclick="toggleRow(this)">
+          <div class="toggle"></div>
+          <div class="app-icon">📑</div>
+          <div class="app-info"><div class="app-name">Adobe Acrobat Reader</div><div class="app-desc">Lecteur PDF de référence, version 64-bit</div></div>
+          <span class="app-badge badge-free">GRATUIT</span>
+        </div>
+        <div class="app-row checked" data-cat="office" data-id="geeksoftware.PDF24Creator" onclick="toggleRow(this)">
+          <div class="toggle"></div>
+          <div class="app-icon">🖨️</div>
+          <div class="app-info"><div class="app-name">PDF24 Creator</div><div class="app-desc">Créer, fusionner et convertir des PDF</div></div>
+          <span class="app-badge badge-free">GRATUIT</span>
+        </div>
+        <div class="app-row checked" data-cat="office" data-id="Notepad++.Notepad++" onclick="toggleRow(this)">
+          <div class="toggle"></div>
+          <div class="app-icon">✏️</div>
+          <div class="app-info"><div class="app-name">Notepad++</div><div class="app-desc">Éditeur de texte avancé avec coloration syntaxique</div></div>
+          <span class="app-badge badge-free">GRATUIT</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">
+        <span class="panel-icon">🎬</span>
+        <span class="panel-title">Multimédia & Utilitaires</span>
+        <span class="panel-sub">via winget</span>
+      </div>
+      <div class="bulk-row">
+        <button class="bulk-btn" onclick="toggleCat('util',true)">Tout cocher</button>
+        <button class="bulk-btn" onclick="toggleCat('util',false)">Tout décocher</button>
+      </div>
+      <div class="panel-body">
+        <div class="app-row checked" data-cat="util" data-id="VideoLAN.VLC" onclick="toggleRow(this)">
+          <div class="toggle"></div>
+          <div class="app-icon">▶️</div>
+          <div class="app-info"><div class="app-name">VLC Media Player</div><div class="app-desc">Lecteur multimédia universel</div></div>
+          <span class="app-badge badge-free">GRATUIT</span>
+        </div>
+        <div class="app-row checked" data-cat="util" data-id="7zip.7zip" onclick="toggleRow(this)">
+          <div class="toggle"></div>
+          <div class="app-icon">🗜️</div>
+          <div class="app-info"><div class="app-name">7-Zip</div><div class="app-desc">Archiveur open-source — ZIP, 7z, RAR</div></div>
+          <span class="app-badge badge-free">GRATUIT</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">
+        <span class="panel-icon">🔐</span>
+        <span class="panel-title">Sécurité & Réseau IT</span>
+        <span class="panel-sub">via winget</span>
+      </div>
+      <div class="bulk-row">
+        <button class="bulk-btn" onclick="toggleCat('it',true)">Tout cocher</button>
+        <button class="bulk-btn" onclick="toggleCat('it',false)">Tout décocher</button>
+      </div>
+      <div class="panel-body">
+        <div class="app-row checked" data-cat="it" data-id="Malwarebytes.Malwarebytes" onclick="toggleRow(this)">
+          <div class="toggle"></div>
+          <div class="app-icon">🛡️</div>
+          <div class="app-info"><div class="app-name">Malwarebytes</div><div class="app-desc">Anti-malware complémentaire à Windows Defender</div></div>
+          <span class="app-badge badge-sec">SECURITE</span>
+        </div>
+        <div class="app-row checked" data-cat="it" data-id="WinSCP.WinSCP" onclick="toggleRow(this)">
+          <div class="toggle"></div>
+          <div class="app-icon">📂</div>
+          <div class="app-info"><div class="app-name">WinSCP</div><div class="app-desc">Client SFTP/FTP pour transferts de fichiers sécurisés</div></div>
+          <span class="app-badge badge-it">RESEAU</span>
+        </div>
+        <div class="app-row checked" data-cat="it" data-id="PuTTY.PuTTY" onclick="toggleRow(this)">
+          <div class="toggle"></div>
+          <div class="app-icon">💻</div>
+          <div class="app-info"><div class="app-name">PuTTY</div><div class="app-desc">Client SSH/Telnet pour administration distante</div></div>
+          <span class="app-badge badge-it">RESEAU</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="info-box orange">
+      <span>⚠️</span>
+      <span><strong>uBlock Origin</strong> — Extension navigateur non installable via winget. Une instruction sera incluse dans le script pour l'installer manuellement depuis le Chrome/Firefox Web Store.</span>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-ghost" onclick="goTo(1)">← Retour</button>
+      <button class="btn btn-primary" onclick="goTo(3)">Générer le script →</button>
+    </div>
+  </div>
+
+  <!-- ======================== SECTION 3 : GENERATION ======================== -->
+  <div class="section" id="sec3">
+
+    <div id="summary-area"></div>
+
+    <div class="code-wrap">
+      <div class="code-top">
+        <div class="code-dots"><div class="cd r"></div><div class="cd y"></div><div class="cd g"></div></div>
+        <span class="code-filename">WinDeploy_Pro.bat</span>
+        <button class="copy-btn" id="copy-btn" onclick="copyScript()">Copier</button>
+      </div>
+      <pre id="script-output"></pre>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-ghost" onclick="goTo(2)">← Modifier</button>
+      <button class="btn btn-green" onclick="downloadScript()">⬇ Télécharger WinDeploy_Pro.bat</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ─── Navigation ───────────────────────────────────────────────
+function goTo(n) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.getElementById('sec'+n).classList.add('active');
+  for (let i=1;i<=3;i++){
+    const s = document.getElementById('s'+i);
+    s.classList.remove('active','done');
+    if(i < n) s.classList.add('done');
+    else if(i === n) s.classList.add('active');
+  }
+  if(n===3) generateScript();
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+// ─── Toggle app row ───────────────────────────────────────────
+function toggleRow(el) {
+  el.classList.toggle('checked');
+}
+function toggleCat(cat, state) {
+  document.querySelectorAll(`[data-cat="${cat}"]`).forEach(el => {
+    if(state) el.classList.add('checked');
+    else el.classList.remove('checked');
+  });
+}
+
+// ─── Collect config ───────────────────────────────────────────
+function getConfig() {
+  return {
+    company:   document.getElementById('cfg-company').value || 'MonEntreprise',
+    logdir:    document.getElementById('cfg-logdir').value || 'C:\\Logs',
+    wallpaper: document.getElementById('cfg-wallpaper').value,
+    veilleAC:  document.getElementById('cfg-veille-ac').value || '240',
+    veilleDC:  document.getElementById('cfg-veille-dc').value || '30',
+    ecranAC:   document.getElementById('cfg-ecran-ac').value || '60',
+  };
+}
+
+function getApps() {
+  const rows = document.querySelectorAll('[data-id]');
+  const selected = [], skipped = [];
+  rows.forEach(r => {
+    const obj = { name: r.querySelector('.app-name').textContent, id: r.dataset.id };
+    if(r.classList.contains('checked')) selected.push(obj);
+    else skipped.push(obj);
+  });
+  return { selected, skipped };
+}
+
+function getSysOptions() {
+  const rows = document.querySelectorAll('#sec1 .app-row');
+  return Array.from(rows).map(r => r.classList.contains('checked'));
+}
+
+// ─── Summary ──────────────────────────────────────────────────
+function buildSummary(apps, cfg) {
+  const area = document.getElementById('summary-area');
+  const total = apps.selected.length + apps.skipped.length;
+  area.innerHTML = `
+    <div class="summary-grid">
+      <div class="sum-card"><span class="sum-n">${apps.selected.length}</span><div class="sum-l">Applications</div></div>
+      <div class="sum-card"><span class="sum-n" style="color:var(--green)">${cfg.veilleAC}min</span><div class="sum-l">Veille secteur</div></div>
+      <div class="sum-card"><span class="sum-n" style="color:var(--purple)">${total}</span><div class="sum-l">Total disponibles</div></div>
+    </div>
+    <div class="app-list-recap">
+      ${apps.selected.map(a=>`<span class="recap-pill">${a.name}</span>`).join('')}
+      ${apps.skipped.map(a=>`<span class="recap-pill skip">${a.name}</span>`).join('')}
+    </div>
+  `;
+}
+
+// ─── Script generation ────────────────────────────────────────
+function generateScript() {
+  const cfg = getConfig();
+  const apps = getApps();
+  const sys = getSysOptions();
+  buildSummary(apps, cfg);
+
+  const lines = [];
+  const L = s => lines.push(s);
+
+  L(`@echo off`);
+  L(`setlocal enabledelayedexpansion`);
+  L(`title WinDeploy Pro v3.0 - ${cfg.company}`);
+  L(``);
+  L(`:: ================================================================`);
+  L(`:: WinDeploy Pro v3.0 - ${cfg.company}`);
+  L(`:: Preparation poste Windows 11 - Genere par WinDeploy Pro`);
+  L(`:: ================================================================`);
+  L(``);
+  L(`set "COMPANY=${cfg.company}"`);
+  L(`set "LOG_DIR=${cfg.logdir}"`);
+  L(`set "WALLPAPER=${cfg.wallpaper}"`);
+  L(``);
+  L(`:: Init log`);
+  L(`for /f "tokens=2 delims==" %%I in ('wmic os get localdatetime /value 2^>nul') do set _DT=%%I`);
+  L(`set "LOGDATE=%_DT:~0,4%-%_DT:~4,2%-%_DT:~6,2%"`);
+  L(`set "LOGFILE=%LOG_DIR%\\WinDeploy_%LOGDATE%.log"`);
+  L(`if not exist "%LOG_DIR%" mkdir "%LOG_DIR%" >nul 2>&1`);
+  L(`echo WinDeploy Pro v3.0 - %DATE% %TIME% > "%LOGFILE%"`);
+  L(``);
+  L(`:: Verification droits admin`);
+  L(`net session >nul 2>&1`);
+  L(`if %errorlevel% neq 0 (`);
+  L(`    echo.`);
+  L(`    echo  [ERREUR] Lancez ce script en Administrateur !`);
+  L(`    echo  Clic droit ^> "Executer en tant qu'administrateur"`);
+  L(`    pause & exit /b 1`);
+  L(`)`);
+  L(`echo  [OK] Droits administrateur confirmes.`);
+  L(``);
+  L(`:: Detection winget`);
+  L(`set "WINGET_OK=0"`);
+  L(`winget --version >nul 2>&1`);
+  L(`if %errorlevel% equ 0 set "WINGET_OK=1"`);
+  L(``);
+
+  // Etape 1 - Alimentation
+  if(sys[0] || sys[1]) {
+    L(`:: ----------------------------------------------------------------`);
+    L(`:: ETAPE 1 - Alimentation`);
+    L(`:: ----------------------------------------------------------------`);
+    L(`echo  [1/6] Alimentation...`);
+    L(`powercfg /change standby-timeout-ac ${cfg.veilleAC} >nul 2>&1`);
+    L(`powercfg /change standby-timeout-dc ${cfg.veilleDC} >nul 2>&1`);
+    L(`powercfg /change monitor-timeout-ac ${cfg.ecranAC} >nul 2>&1`);
+    L(`powercfg /change monitor-timeout-dc 10 >nul 2>&1`);
+    if(sys[1]) L(`powercfg /hibernate off >nul 2>&1`);
+    if(sys[0]) L(`powercfg /setactive 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c >nul 2>&1`);
+    L(`echo       [OK] Alimentation configuree`);
+    L(`echo [%DATE% %TIME%] [OK] Alimentation >> "%LOGFILE%"`);
+    L(``);
+  }
+
+  // Etape 2 - Bureau
+  if(sys[2] || sys[3] || sys[4]) {
+    L(`:: ----------------------------------------------------------------`);
+    L(`:: ETAPE 2 - Bureau et explorateur`);
+    L(`:: ----------------------------------------------------------------`);
+    L(`echo  [2/6] Bureau et explorateur...`);
+    L(`set "K_ICO=HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\HideDesktopIcons\\NewStartPanel"`);
+    L(`set "K_ADV=HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced"`);
+    if(sys[2]) {
+      L(`reg add "%K_ICO%" /v "{20D04FE0-3AEA-1069-A2D8-08002B30309D}" /t REG_DWORD /d 0 /f >nul 2>&1`);
+      L(`reg add "%K_ICO%" /v "{59031a47-3f72-44a7-89c5-5595fe6b30ee}" /t REG_DWORD /d 0 /f >nul 2>&1`);
+      L(`reg add "%K_ICO%" /v "{645FF040-5081-101B-9F08-00AA002F954E}" /t REG_DWORD /d 0 /f >nul 2>&1`);
+      L(`ie4uinit.exe -show >nul 2>&1`);
+    }
+    if(sys[3]) {
+      L(`reg add "%K_ADV%" /v HideFileExt /t REG_DWORD /d 0 /f >nul 2>&1`);
+      L(`reg add "%K_ADV%" /v Hidden /t REG_DWORD /d 1 /f >nul 2>&1`);
+      L(`reg add "%K_ADV%" /v LaunchTo /t REG_DWORD /d 1 /f >nul 2>&1`);
+    }
+    if(sys[4]) L(`reg add "%K_ADV%" /v TaskbarAl /t REG_DWORD /d 0 /f >nul 2>&1`);
+    L(`echo       [OK] Bureau configure`);
+    L(`echo [%DATE% %TIME%] [OK] Bureau >> "%LOGFILE%"`);
+    L(``);
+  }
+
+  // Etape 3 - Apps
+  if(apps.selected.length > 0) {
+    L(`:: ----------------------------------------------------------------`);
+    L(`:: ETAPE 3 - Applications (${apps.selected.length} selectionnees)`);
+    L(`:: ----------------------------------------------------------------`);
+    L(`echo  [3/6] Installation des applications...`);
+    L(`if "%WINGET_OK%"=="0" (`);
+    L(`    echo       [SKIP] winget absent - etape ignoree`);
+    L(`    goto :ETAPE4`);
+    L(`)`);
+    L(`winget source update >nul 2>&1`);
+    L(``);
+    apps.selected.forEach(app => {
+      L(`echo       Installation : ${app.name}...`);
+      L(`winget install --id "${app.id}" -e --silent --accept-source-agreements --accept-package-agreements >nul 2>&1`);
+      L(`if %errorlevel% equ 0 ( echo       [OK]   ${app.name} ) else ( echo       [WARN] ${app.name} : echec ou deja installe )`);
+      L(``);
+    });
+    L(`echo       [INFO] uBlock Origin = installer manuellement depuis Chrome/Firefox Web Store`);
+    L(`echo [%DATE% %TIME%] [OK] Applications >> "%LOGFILE%"`);
+    L(``);
+  }
+
+  L(`:ETAPE4`);
+
+  // Fond d'ecran
+  if(cfg.wallpaper) {
+    L(`:: ----------------------------------------------------------------`);
+    L(`:: ETAPE 4 - Fond d'ecran`);
+    L(`:: ----------------------------------------------------------------`);
+    L(`echo  [4/6] Fond d'ecran...`);
+    L(`if exist "${cfg.wallpaper}" (`);
+    L(`    reg add "HKCU\\Control Panel\\Desktop" /v Wallpaper /t REG_SZ /d "${cfg.wallpaper}" /f >nul 2>&1`);
+    L(`    reg add "HKCU\\Control Panel\\Desktop" /v WallpaperStyle /t REG_SZ /d "10" /f >nul 2>&1`);
+    L(`    reg add "HKCU\\Control Panel\\Desktop" /v TileWallpaper /t REG_SZ /d "0" /f >nul 2>&1`);
+    L(`    powershell -ExecutionPolicy Bypass -Command "Add-Type -TypeDefinition 'using System.Runtime.InteropServices; public class W { [DllImport(\\\"user32.dll\\\",CharSet=CharSet.Unicode)] public static extern int SystemParametersInfo(int u,int p,string l,int f); }'; [W]::SystemParametersInfo(20,0,'${cfg.wallpaper}',3)" >nul 2>&1`);
+    L(`    echo       [OK] Fond d'ecran applique`);
+    L(`) else (`);
+    L(`    echo       [WARN] Fichier introuvable : ${cfg.wallpaper}`);
+    L(`)`);
+    L(``);
+  }
+
+  // Securite
+  if(sys[5]) {
+    L(`:: ----------------------------------------------------------------`);
+    L(`:: ETAPE 5 - Securite`);
+    L(`:: ----------------------------------------------------------------`);
+    L(`echo  [5/6] Securite systeme...`);
+    L(`powershell -ExecutionPolicy Bypass -Command "Set-MpPreference -DisableRealtimeMonitoring $false" >nul 2>&1`);
+    L(`netsh advfirewall set allprofiles state on >nul 2>&1`);
+    L(`reg add "HKLM\\SYSTEM\\CurrentControlSet\\Control\\Terminal Server" /v fDenyTSConnections /t REG_DWORD /d 1 /f >nul 2>&1`);
+    L(`reg add "HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\WindowsUpdate\\Auto Update" /v AUOptions /t REG_DWORD /d 4 /f >nul 2>&1`);
+    L(`reg add "HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\System" /v ConsentPromptBehaviorAdmin /t REG_DWORD /d 5 /f >nul 2>&1`);
+    L(`echo       [OK] Defender, pare-feu, UAC configures`);
+    L(`echo [%DATE% %TIME%] [OK] Securite >> "%LOGFILE%"`);
+    L(``);
+  }
+
+  // Nettoyage
+  if(sys[6]) {
+    L(`:: ----------------------------------------------------------------`);
+    L(`:: ETAPE 6 - Nettoyage`);
+    L(`:: ----------------------------------------------------------------`);
+    L(`echo  [6/6] Nettoyage disque...`);
+    L(`for %%G in ("Temporary Files" "Recycle Bin" "Internet Cache Files" "Thumbnails") do (`);
+    L(`    reg add "HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\VolumeCaches\\%%~G" /v StateFlags0001 /t REG_DWORD /d 2 /f >nul 2>&1`);
+    L(`)`);
+    L(`cleanmgr /sagerun:1 >nul 2>&1`);
+    L(`powershell -ExecutionPolicy Bypass -Command "Remove-Item -Path $env:TEMP\\* -Recurse -Force -ErrorAction SilentlyContinue" >nul 2>&1`);
+    L(`del /s /f /q "%SystemRoot%\\Temp\\*.*" >nul 2>&1`);
+    L(`powershell -ExecutionPolicy Bypass -Command "Clear-RecycleBin -Force -ErrorAction SilentlyContinue" >nul 2>&1`);
+    L(`echo       [OK] Nettoyage termine`);
+    L(`echo [%DATE% %TIME%] [OK] Nettoyage >> "%LOGFILE%"`);
+    L(``);
+  }
+
+  // Optimisations
+  if(sys[7]) {
+    L(`:: Optimisations (Cortana, GameBar, suggestions)`);
+    L(`reg add "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\VisualEffects" /v VisualFXSetting /t REG_DWORD /d 2 /f >nul 2>&1`);
+    L(`reg add "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\Windows Search" /v AllowCortana /t REG_DWORD /d 0 /f >nul 2>&1`);
+    L(`reg add "HKCU\\System\\GameConfigStore" /v GameDVR_Enabled /t REG_DWORD /d 0 /f >nul 2>&1`);
+    L(`reg add "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\GameDVR" /v AllowGameDVR /t REG_DWORD /d 0 /f >nul 2>&1`);
+    L(`reg add "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager" /v SystemPaneSuggestionsEnabled /t REG_DWORD /d 0 /f >nul 2>&1`);
+    L(`echo       [OK] Optimisations terminees`);
+    L(``);
+  }
+
+  // Fin
+  L(`:: ----------------------------------------------------------------`);
+  L(`:: FIN`);
+  L(`:: ----------------------------------------------------------------`);
+  L(`echo.`);
+  L(`echo  ============================================================`);
+  L(`echo    DEPLOIEMENT TERMINE - WinDeploy Pro v3.0`);
+  L(`echo    Votre Nom : ${cfg.company}`);
+  L(`echo    Poste      : %COMPUTERNAME%`);
+  L(`echo    Log        : %LOGFILE%`);
+  L(`echo  ============================================================`);
+  L(`echo.`);
+  if(apps.selected.length > 0) {
+    L(`echo  Applications installees :`);
+    apps.selected.forEach(a => L(`echo    [OK] ${a.name}`));
+    L(`echo    [!]  uBlock Origin - Installation manuelle requise`);
+    L(`echo.`);
+  }
+  if(apps.skipped.length > 0) {
+    L(`echo  Applications ignorees :`);
+    apps.skipped.forEach(a => L(`echo    [--] ${a.name}`));
+    L(`echo.`);
+  }
+  L(`echo  Appuyez sur une touche pour fermer...`);
+  L(`echo  ============================================================`);
+  L(`echo.`);
+  L(`echo [%DATE% %TIME%] [INFO] === FIN DEPLOIEMENT === >> "%LOGFILE%"`);
+  L(`pause >nul`);
+  L(`exit /b 0`);
+
+  window._generatedScript = lines.join('\n');
+  document.getElementById('script-output').textContent = window._generatedScript;
+}
+
+// ─── Copy / Download ──────────────────────────────────────────
+function copyScript() {
+  navigator.clipboard.writeText(window._generatedScript || '').then(() => {
+    const btn = document.getElementById('copy-btn');
+    btn.textContent = 'Copie !';
+    btn.classList.add('ok');
+    setTimeout(() => { btn.textContent = 'Copier'; btn.classList.remove('ok'); }, 2000);
+  });
+}
+
+function downloadScript() {
+  const script = window._generatedScript || '';
+  const blob = new Blob([script], { type: 'application/octet-stream' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'WinDeploy_Pro.txt';
+  a.click();
+}
+</script>
+</body>
+</html>
