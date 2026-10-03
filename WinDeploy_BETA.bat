@@ -11,7 +11,7 @@ title WinDeploy Pro v3.0 - Preparation Windows 11
 :: ----------------------------------------------------------------
 :: CONFIGURATION - Modifier selon les besoins
 :: ----------------------------------------------------------------
-set "COMPANY=VanooCONFIGE"
+set "COMPANY=RenzVASA"
 set "LOG_DIR=C:\Logs"
 set "WALLPAPER=C:\Windows\Web\Wallpaper\Windows\img0.jpg"
 set "VEILLE_AC=240"
